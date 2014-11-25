@@ -1,0 +1,114 @@
+{% extends 'common/base.html' %}
+
+{% load bootstrap3 %}
+{% load url from future %}
+{% load staticfiles %}
+{% block extra_head %}
+    <style type="text/css">
+        .list-group-item { border: 0px; }
+        .list-group-item:first-child {border-top-left-radius:0px;border-top-right-radius:0px}
+        .list-group-item:last-child {border-bottom-left-radius:0px;border-bottom-right-radius:0px}
+        .list-group {margin-bottom: 0px;}
+    </style>
+{% endblock %}
+{% block title %}菜单列表{% endblock %}
+{% block content %}
+    <form action="{% url 'OrderFood.views.order_food' restaurant_name %}" method="post" class="form">
+        {% csrf_token %}
+        {% for category in categories %}
+            <div class="panel panel-default">
+              <div class="panel-heading">
+                <h3 class="panel-title">{{ category }}</h3>
+              </div>
+                <div class="container-fluid">
+                    <div class="list-group row">
+                            {% for food in foods %}
+                            {% if food.category == category%}
+                                <a href="javascript:void(0)" id="{{ food.id }}" type="{{ food.type.id }}" class="list-group-item col-xs-12 col-md-6 col-lg-6">
+                                    <span class="badge">{{ food.price }}元</span>
+                                    {{ food.name }}
+                                    {% if food.comments %}
+                                        ({{ food.comments }})
+                                    {% endif %}
+                                </a>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+
+            </div>
+        {% endfor %}
+        {# Display a form #}
+        <div class="panel panel-success">
+            <div class="panel-heading">
+                <h3 class="panel-title">我的信息</h3>
+            </div>
+            <div class="panel-body">
+
+                  {% bootstrap_form form %}
+                  {% buttons %}
+                    <button type="submit" class="btn btn-primary btn-block">
+                       下单
+                    </button>
+                  {% endbuttons %}
+            </div>
+        </div>
+    </form>
+
+{% endblock %}
+
+{% block extras_script %}
+    Array.prototype.indexOf = function(val) {
+        for (var i = 0; i < this.length; i++) {
+            if (this[i] == val) return i;
+        }
+        return -1;
+    };
+    Array.prototype.remove = function(val) {
+        var index = this.indexOf(val);
+        if (index > -1) {
+            this.splice(index, 1);
+        }
+    };
+
+    var food_ids = new Array();
+    var food_count = 0;
+    var food_threshold = 2;
+    function addOrRemoveFood(id){
+        if($.inArray(id, food_ids)>-1){
+            //删除
+            food_ids.remove(id);
+            if($("#"+id).attr('type') == '1'){
+                food_count--;
+            }
+            if(food_count<food_threshold)
+                $("a[type='1'][class*='disabled']").removeClass('disabled');//激活其它食物
+        }else {
+            //添加
+            food_ids.push(id);
+            if($("#"+id).attr('type') == '1'){
+                food_count++;
+            }
+            if(food_count==food_threshold){
+                $("a[type='1']").not($("a[type='1'][class*='active']")).addClass('disabled');//冻结其它食物
+            }
+        }
+        $("input[name='food_ids']").val(food_ids.join(","));
+        //alert($("input[name='food_ids']").val())
+    }
+{% endblock %}
+
+{% block onready_script %}
+      $('.list-group-item').click(function(){
+            if(!$(this).hasClass('disabled')){
+                if($(this).hasClass('active')){
+                      $(this).removeClass('active');
+                  }else{
+                      $(this).addClass('active');
+                  }
+                var _id = $(this).attr("id");
+                addOrRemoveFood(_id);
+            }
+
+       });
+{% endblock %}

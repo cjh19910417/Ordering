@@ -1,7 +1,61 @@
+{% extends 'common/bootstrap.html' %}
+
 {# Load the tag library #}
 {% load bootstrap3 %}
+{% load staticfiles %}
+{% load url from future %}
+{% block bootstrap3_extra_head %}
+    <style>
+        body { padding-top: 70px; }
+    </style>
+    {% block extra_head %}{% endblock %}
+{% endblock %}
+{% block bootstrap3_content %}
+    {% include 'common/header.html' %}
+    {% block parent_content %}
+        <div class="container">
+            {% block content %}{% endblock %}
+        </div>
+    {% endblock %}
+    {% include 'common/footer.html' %}
+{% endblock %}
 
-{# Load CSS and JavaScript #}
-{% bootstrap_css %}
-{% bootstrap_javascript %}
+{% block bootstrap3_extra_script %}
+    <script type="text/javascript" language="JavaScript">
+        function loadNavInfo(){
+            $.ajax({
+               type: "POST",
+               url: "{% url 'OrderFood.views.load_nav_info' %}",
+               success: function(info){
+                   teams = eval('('+info.teams+')');
+                   restaurants = eval('('+info.restaurants+')');
+{#                    alert(info.restaurants);#}
+                   $("#team_order_list").empty();
+                   for(var i=0;i<teams.length;i++){
+                      var url = '/orderdetail/'+teams[i].fields.name+'/today/';
+                      $("#team_order_list").append("<li><a href=\""+url+"\">"+teams[i].fields.name+"</a></li>")
+                   }
+                   //        <li><a href="{% url 'OrderFood.views.order_food' restaurant_name='DC' %}">都城</a></li>
 
+                   $("#leftnav").empty();
+                   var cur_href = window.location.href;
+                   for(var i=0;i<restaurants.length;i++){
+                      var url = '/orderfood/'+restaurants[i].fields.code+'/';
+                      var name = restaurants[i].fields.name;
+                      var active_class = '';
+                      if(cur_href.indexOf(url)>-1){
+                          active_class = " class='active' ";
+                      }
+                      $("#leftnav").append("<li"+active_class+"><a href=\""+url+"\">"+name+"</a></li>")
+                   }
+               }
+            });
+        }
+        $(document).ready(function(){
+            loadNavInfo();//加载nav信息
+            {% block onready_script %}{% endblock %}
+        });
+
+        {% block extras_script %}{% endblock %}
+    </script>
+{% endblock %}

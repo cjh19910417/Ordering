@@ -1,0 +1,26 @@
+{% extends 'common/bootstrap.html' %}
+
+{# Load the tag library #}
+{% load bootstrap3 %}
+{% load staticfiles %}
+{% load url from future %}
+{% block bootstrap3_content %}
+    {% block parent_content %}
+            <div class="panel panel-default">
+              <!-- Default panel contents -->
+              <div class="panel-heading">统计</div>
+
+              <!-- Table -->
+              <table class="table">
+                <th>名称</th><th>数量</th>
+                    {% for entry in count_info %}
+                        <tr>
+                            <td>{{ entry.name }}</td>
+                            <td>{{ entry.total }}</td>
+                        </tr>
+                    {% endfor %}
+              </table>
+            </div>
+    {% endblock %}
+{% endblock %}
+

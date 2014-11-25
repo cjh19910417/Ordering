@@ -1,0 +1,197 @@
+{% extends 'common/base.html' %}
+
+{% load bootstrap3 %}
+{% load url from future %}
+{% load staticfiles %}
+{% load tag_extras %}
+{% block title %}订单详情{% endblock %}
+{% block content %}
+    {% for period_code, period_name, period_total in period %}
+        {% if period_total > 0%}
+            {% for restaurant_id, restaurant_name in restaurants %}
+                <div id="{{ restaurant_id }}_{{ period_code }}_panel" class="panel panel-default">
+                  <!-- Default panel contents -->
+                  <div class="panel-heading">{{ team }}订单详情({{ period_name|default:'' }}) - <span class="text-danger">{{ restaurant_name }}</span></div>
+                  <table class="table">
+                    <th>#</th><th>姓名</th><th>清单</th><th>备注</th><th>金额</th><th>操作</th>
+                    {% for order in orders %}
+                        {% if order.period == period_code and order.restaurant.id == restaurant_id %}
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>{{ order.owner }}</td>
+                                <td>
+                                    <p class="text-info food">{{ order|name:'food' }}</p>
+                                    {% for food in order.foods.all %}
+                                        {% if food.type.id == 2 %}
+                                            <p class="text-warning drink">{{ food.name }}</p>
+                                        {% endif %}
+                                        {% if food.type.id == 3 %}
+                                            <p class="other">{{ food.name }}</p>
+                                        {% endif %}
+                                    {% endfor %}
+                                </td>
+                                <td>{{ order.comments|default:'无' }}</td>
+                                <td><span class="{{ restaurant_id }}_{{ period_code }}_entry_total">{{ order.foods.all|total_foods }}</span>元</td>
+                                <td>
+                                    <button id="{{ order.id }}" class="btn btn-danger remove">删除</button>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    {% endfor %}
+                    <tr>
+                        <td colspan="3" align="left" style="padding-left: 20px;">
+                            <button type="button" period="{{ restaurant_id }}_{{ period_code }}" class="btn btn-primary">
+                                统计一下
+                            </button>
+            {#                <a class="btn btn-primary" data-toggle="modal" href="/orderstatistic/{{ team }}/today/" data-target="#myModal">Click me</a>#}
+                        </td>
+                        <td colspan="3" align="right" style="padding-right: 20px;">
+                            <p class="text-danger">小计:<span panel="{{ restaurant_id }}_{{ period_code }}" class="panel_total"></span>元(仅供参考)</p>
+                        </td>
+                    </tr>
+
+                  </table>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+    {% endfor %}
+
+<!-- Modal -->
+    <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dism∂iss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            <h4 class="modal-title" id="myModalLabel">统计</h4>
+          </div>
+          <div class="modal-body">
+              <div class="panel panel-default">
+              <!-- Table -->
+              <table id="countModel" class="table">
+                  <tbody></tbody>
+              </table>
+            </div>
+            <div id="countInfo" class="alert alert-success" role="alert">...</div>
+
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+{#            <button type="button" class="btn btn-primary">Save changes</button>#}
+          </div>
+        </div>
+      </div>
+    </div>
+{% endblock %}
+
+{% block onready_script %}
+          $('.remove').click(function(){
+              if(confirm('确定要删除?')){
+                  var _id = $(this).attr("id");
+                  $.ajax({
+                       type: "POST",
+                       url: "{% url 'OrderFood.views.remove_order' %}",
+                       data: {
+                           id:_id
+                       },
+                       success: function(msg){
+                         if(msg == '1'){
+                             $("#"+_id).parent().parent().fadeOut("slow");
+                         }else{
+                             alert("删除失败!");
+                         }
+                       }
+                  });
+              }
+           });
+
+            $(".panel_total").each(function(i){
+                var panelType = $(this).attr("panel");
+                var total = 0;
+                $("."+panelType+"_entry_total").each(function(k){
+                    total += parseInt($(this).text());
+                });
+                $(this).text(total);
+            });
+
+            $(".panel.panel-default").each(function(i){
+                if($(this).find("tr").length == 2){
+                    $(this).remove();
+                }
+            });
+
+          $('button[period]').click(function(){
+             render_statistic_model($(this).attr('period'));
+             $("#myModal").modal();
+          });
+
+{% endblock %}
+
+{% block extras_script %}
+    function render_statistic_model(period){
+        $("#countModel tbody").empty();
+        $("#countModel tbody").append('<tr><th>名称</th><th>数量</th></tr>');
+        var count_info = new Array();
+        var food_total = 0;
+        var drink_total = 0;
+        var other_total = 0;
+
+        function contains(text,arr) {
+            for(var i=0;i<arr.length;i++){
+                if(text == arr[i].name){
+                    return arr[i];
+                }
+            }
+            return null;
+        }
+        function count_food(_class,arr){
+            $("#"+period+"_panel").find("."+_class).each(function(i){
+               var _name = $(this).text();
+               if(_name&&_name!=''){
+                   var obj = contains(_name,arr);
+                   if(obj){
+                       obj.total += 1;
+                   }else{
+                       arr.push({name:_name,total:1})
+                   }
+               }
+            });
+        }
+        function count(arr){
+            var total = 0;
+            for(var i=0;i<arr.length;i++){
+                total += arr[i].total;
+            }
+            return total;
+        }
+
+        count_food('food',count_info);
+        food_total = count(count_info);
+
+        count_food('drink',count_info);
+        drink_total = count(count_info) - food_total;
+
+        count_food('other',count_info);
+        other_total = count(count_info) - (food_total + drink_total);
+
+        for(var i=0;i<count_info.length;i++){
+            var html = new Array();
+            html.push('<tr>');
+            html.push('<td>'+count_info[i].name+'</td>');
+            html.push('<td>'+count_info[i].total+'</td>');
+            html.push('</tr>');
+            $("#countModel tbody").append(html.join(''));
+        }
+        var statisticWord = '';
+        if(food_total > 0){
+            statisticWord += '    饭:'+food_total;
+        }
+        if(drink_total > 0){
+            statisticWord += '    饮料:'+drink_total;
+        }
+        if(other_total > 0){
+            statisticWord += '    其它:'+other_total;
+        }
+        $("#countInfo").text(statisticWord);
+    }
+{% endblock %}

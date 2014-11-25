@@ -1,22 +1,21 @@
-{# Load the tag library #}
+{% extends 'common/base.html' %}
+
 {% load bootstrap3 %}
 
-{# Load CSS and JavaScript #}
-{% bootstrap_css %}
-{% bootstrap_javascript %}
+{% block title %}demo{% endblock %}
 
-{# Display django.contrib.messages as Bootstrap alerts #}
-{% bootstrap_messages %}
+{% block content %}
 
-{# Display a form #}
-<form action="/demo/" method="post" class="form">
-  {% csrf_token %}
-  {% bootstrap_form form %}
-  {% buttons %}
-    <button type="submit" class="btn btn-primary">
-      {% bootstrap_icon "star" %} Submit
-    </button>
-  {% endbuttons %}
-</form>
+    {# Display a form #}
+    <form action="/demo/" method="post" class="form">
+      {% csrf_token %}
+      {% bootstrap_form form %}
+      {% buttons %}
+        <button type="submit" class="btn btn-primary">
+          {% bootstrap_icon "star" %} Submit
+        </button>
+      {% endbuttons %}
+    </form>
 
-{# Read the documentation for more information #}
+    {# Read the documentation for more information #}
+{% endblock %}
